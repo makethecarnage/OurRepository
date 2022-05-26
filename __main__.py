@@ -2,8 +2,9 @@ import tinkoff.invest as tinvest
 from pandas import DataFrame
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
-import pandas as pd
 from ta.trend import ema_indicator
+from yahoo_fin import news
+from yahoo_fin import options
 
 token = 't.og8jYwK7ryJy3Ns1EGYcPvOBOFpONQbnNdlOL75ZgJMtXwFWqZXAqD5YEuXJPLKMgF6wAG8ycLhBlClXZg-Ncg'
 
@@ -22,12 +23,12 @@ def get_info(ticker):
     except (TypeError, IndexError):
         print('Тикера не существует, или он был введен неправильно.')
 
-def get_candle(figi):
+def get_candle(figi):               #Полные данные по свечи
     candles = client.market_data.get_candles(
         figi=figi,
         from_=datetime.utcnow()-timedelta(days=6),
         to=datetime.utcnow(),
-        interval=tinvest.CandleInterval.CANDLE_INTERVAL_HOUR
+        interval=tinvest.CandleInterval.CANDLE_INTERVAL_HOUR #Для разных тф свои лимиты: для ТФ день - 365 свечей, для ТФ час - неделя, для ТФ минута - сутки, если потребуется больше свечей - цикл
     )
 
     df = DataFrame([{
@@ -43,7 +44,7 @@ def get_candle(figi):
 def money(value):
     return value.units + value.nano / 1e9
 
-def graph(df, name):
+def graph(df, name):                #Для того, чтобы программа продолжилась, закрыть график
     ax = df.plot(x='time', y='close')
     df.plot(ax=ax, x='time', y='ema')
     ax.set_title('График компании ' + name)
@@ -54,10 +55,17 @@ def ema(df):
     return df
 
 if __name__ == "__main__":
+    ticker = get_ticker()
+
     with tinvest.Client(token) as client:
-        ticker = get_ticker()
         comp_info = get_info(ticker)
         df = get_candle(comp_info['figi'].iloc[0])
         df_ema = ema(df)
         graph(df_ema, comp_info['name'].iloc[0])
 
+    news = news.get_yf_rss(ticker)
+    print(news[0]['published']) #Пример, как узнать время новости
+
+    puts = options.get_puts(ticker)
+    calls = options.get_calls(ticker)
+    exp_dates= options.get_expiration_dates(ticker)
