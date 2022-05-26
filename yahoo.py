@@ -1,9 +1,7 @@
-import yfinance as yf
+from yahoo_fin import news
+
 
 ticker = input()
-ticker= yf.Ticker(ticker)
-
-print(ticker.news)
-print(ticker.recommendations['To Grade'].value_counts())
-#print(ticker.earnings)
-print(ticker.quarterly_earnings)
+news = news.get_yf_rss(ticker)
+print(news[0]['published'])
+print(news[19]['published'])
