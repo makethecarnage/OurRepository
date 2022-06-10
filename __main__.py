@@ -9,7 +9,7 @@ from yahoo_fin import options
 token = 't.og8jYwK7ryJy3Ns1EGYcPvOBOFpONQbnNdlOL75ZgJMtXwFWqZXAqD5YEuXJPLKMgF6wAG8ycLhBlClXZg-Ncg'
 
 def get_ticker():
-    ticker = input()
+    ticker = input('Введите тикер ')
     return ticker
 
 def get_info(ticker):
@@ -23,14 +23,30 @@ def get_info(ticker):
     except (TypeError, IndexError):
         print('Тикера не существует, или он был введен неправильно.')
 
-def get_candle(figi):               #Полные данные по свечи
-    candles = client.market_data.get_candles(
-        figi=figi,
-        from_=datetime.utcnow()-timedelta(days=6),
-        to=datetime.utcnow(),
-        interval=tinvest.CandleInterval.CANDLE_INTERVAL_HOUR #Для разных тф свои лимиты: для ТФ день - 365 свечей, для ТФ час - неделя, для ТФ минута - сутки, если потребуется больше свечей - цикл
-    )
+def get_candle(figi):     #Полные данные по свечи
 
+    tf = input('Введите ТФ ') #Пока работает только для hour
+
+    final_date = datetime.utcnow()
+    start_date = datetime.utcnow() - timedelta(days=7)
+    info = []
+    candles = []
+    if tf == 'hour':
+        for i in range(122):
+            info = client.market_data.get_candles(
+                figi=figi,
+                from_=start_date,
+                to=final_date,
+                interval=tinvest.CandleInterval.CANDLE_INTERVAL_HOUR #Для разных тф свои лимиты: для ТФ день - 365 свечей, для ТФ час - неделя, для ТФ минута - сутки, если потребуется больше свечей - цикл
+            )
+            #print(info.candles)
+            candles.extend(info.candles)
+            final_date = start_date
+            start_date = final_date - timedelta(days=7)
+        #print(len(candles))
+    return candles
+
+def create_dataframe(candles):
     df = DataFrame([{
         'time': c.time,
         'volume': c.volume,
@@ -38,7 +54,7 @@ def get_candle(figi):               #Полные данные по свечи
         'close': money(c.close),
         'high': money(c.high),
         'low': money(c.low),
-    } for c in candles.candles])
+    } for c in candles])
     return df
 
 def money(value):
@@ -71,10 +87,11 @@ if __name__ == "__main__":
 
     with tinvest.Client(token) as client:
         comp_info = get_info(ticker)
-        df = get_candle(comp_info['figi'].iloc[0])
+        candles = get_candle(comp_info['figi'].iloc[0])
+        df = create_dataframe(candles)
         df_act = get_max_activity(df)
-        print(df_act)
-        print(df_act.idxmax()[0])
+        #print(df_act)
+        print('Наибольшая активность в '+ str(df_act.idxmax()[0]) + ' часов')
         df_ema = ema(df)
         #graph(df_ema, comp_info['name'].iloc[0])
 
