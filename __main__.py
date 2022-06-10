@@ -54,18 +54,32 @@ def ema(df):
     df['ema'] = ema_indicator(df['close'],window=9)
     return df
 
+def get_max_activity(df):
+    df_act = df.copy(deep=True)
+    for i in range(df_act.shape[0]):
+        df_act.loc[i, 'time'] = df.loc[i,'time'].hour
+
+    df_act = df_act.groupby(['time']).agg({'volume': 'mean'}).round(2)
+    df_act['time'] = df_act.index
+
+    df_act.plot.bar(x='time', y='volume')
+    plt.show()
+    return df_act
+
 if __name__ == "__main__":
     ticker = get_ticker()
 
     with tinvest.Client(token) as client:
         comp_info = get_info(ticker)
         df = get_candle(comp_info['figi'].iloc[0])
+        df_act = get_max_activity(df)
+        print(df_act)
+        print(df_act.idxmax()[0])
         df_ema = ema(df)
-        graph(df_ema, comp_info['name'].iloc[0])
+        #graph(df_ema, comp_info['name'].iloc[0])
 
     news = news.get_yf_rss(ticker)
-    print(news[0]['published']) #Пример, как узнать время новости
-
+    #print(news[0]['published']) #Пример, как узнать время новости
     puts = options.get_puts(ticker)
     calls = options.get_calls(ticker)
     exp_dates= options.get_expiration_dates(ticker)
