@@ -3,8 +3,6 @@ from pandas import DataFrame
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from ta.trend import ema_indicator
-from yahoo_fin import news
-from yahoo_fin import options
 
 token = 't.og8jYwK7ryJy3Ns1EGYcPvOBOFpONQbnNdlOL75ZgJMtXwFWqZXAqD5YEuXJPLKMgF6wAG8ycLhBlClXZg-Ncg'
 
@@ -23,14 +21,15 @@ def get_info(ticker):
     except (TypeError, IndexError):
         print('Тикера не существует, или он был введен неправильно.')
 
-def get_candle(figi, tf):     #Полные данные по свечи
+def get_candle(figi):     #Полные данные по свечи
 
+    tf = input('Введите ТФ ') #Пока работает только для hour
+
+    final_date = datetime.utcnow()
+    start_date = datetime.utcnow() - timedelta(days=7)
     info = []
     candles = []
-
     if tf == 'hour':
-        final_date = datetime.utcnow()
-        start_date = datetime.utcnow() - timedelta(days=7)
         for i in range(122):
             info = client.market_data.get_candles(
                 figi=figi,
@@ -38,26 +37,11 @@ def get_candle(figi, tf):     #Полные данные по свечи
                 to=final_date,
                 interval=tinvest.CandleInterval.CANDLE_INTERVAL_HOUR #Для разных тф свои лимиты: для ТФ день - 365 свечей, для ТФ час - неделя, для ТФ минута - сутки, если потребуется больше свечей - цикл
             )
-            candles.extend(info.candles)
-            final_date = start_date
-            start_date = final_date - timedelta(days=7)
-
-    elif tf == 'day':
-        final_date = datetime.utcnow()
-        start_date = datetime.utcnow() - timedelta(days=365)
-        for i in range(10):
-            info = client.market_data.get_candles(
-                figi=figi,
-                from_=start_date,
-                to=final_date,
-                interval=tinvest.CandleInterval.CANDLE_INTERVAL_DAY #Для разных тф свои лимиты: для ТФ день - 365 свечей, для ТФ час - неделя, для ТФ минута - сутки, если потребуется больше свечей - цикл
-            )
             #print(info.candles)
             candles.extend(info.candles)
             final_date = start_date
-            start_date = final_date - timedelta(days=365)
+            start_date = final_date - timedelta(days=7)
         #print(len(candles))
-
     return candles
 
 def create_dataframe(candles):
@@ -84,17 +68,10 @@ def ema(df):
     df['ema'] = ema_indicator(df['close'],window=9)
     return df
 
-def get_max_activity(df, max_act):
+def get_max_activity(df):
     df_act = df.copy(deep=True)
-    if max_act == 'hour':
-        for i in range(df_act.shape[0]):
-            df_act.loc[i, 'time'] = df.loc[i,'time'].hour
-    elif max_act == 'month':
-        for i in range(df_act.shape[0]):
-            df_act.loc[i, 'time'] = df.loc[i,'time'].month
-    elif max_act == 'day':
-        for i in range(df_act.shape[0]):
-            df_act.loc[i, 'time'] = datetime.isoweekday(df.loc[i, 'time'])
+    for i in range(df_act.shape[0]):
+        df_act.loc[i, 'time'] = df.loc[i,'time'].hour
 
     df_act = df_act.groupby(['time']).agg({'volume': 'mean'}).round(2)
     df_act['time'] = df_act.index
@@ -105,21 +82,14 @@ def get_max_activity(df, max_act):
 
 if __name__ == "__main__":
     ticker = get_ticker()
-    tf = input('Введите ТФ ')  # Пока работает только для hour
-    max_act = input('Максимальная активность по ')
 
     with tinvest.Client(token) as client:
         comp_info = get_info(ticker)
-        candles = get_candle(comp_info['figi'].iloc[0], tf)
+        candles = get_candle(comp_info['figi'].iloc[0])
         df = create_dataframe(candles)
-        df_act = get_max_activity(df, max_act)
-        print(df_act)
+        df_act = get_max_activity(df)
+        #print(df_act)
         print('Наибольшая активность в '+ str(df_act.idxmax()[0]) + ' часов')
         df_ema = ema(df)
         #graph(df_ema, comp_info['name'].iloc[0])
 
-    news = news.get_yf_rss(ticker)
-    #print(news[0]['published']) #Пример, как узнать время новости
-    puts = options.get_puts(ticker)
-    calls = options.get_calls(ticker)
-    exp_dates= options.get_expiration_dates(ticker)
