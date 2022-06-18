@@ -5,21 +5,19 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.core.window import Window
 import matplotlib.pyplot as plt
-import matplotlib
 import threading
 import re
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
-from kivy.uix.floatlayout import FloatLayout
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 
+from yahoo_fin import options
 import tinkoff.invest as tinvest
 from pandas import DataFrame
 from datetime import datetime, timedelta
 
-from ta.trend import ema_indicator, SMAIndicator
+from ta.trend import ema_indicator
 from kivy.uix.spinner import Spinner
-from yahoo_fin import options
 
 
 class TestApp(App):
@@ -174,6 +172,7 @@ class TestApp(App):
         max_act = input('Максимальная активность по ')'''
 
     def create_options(self):
+
         ticker = self.my_string
 
         puts = options.get_puts(ticker)
@@ -182,6 +181,8 @@ class TestApp(App):
         self.Calls = calls.shape[0]
         self.Puts = puts.shape[0]
 
+        puts['sma50'] = ema_indicator(puts['Last Trade'], window=50)
+        puts['ema100'] = ema_indicator(puts['Last Trade'], window=100)
 
 
     def complete(self, instance):
@@ -193,6 +194,9 @@ class TestApp(App):
 
         self.get_max_activity(df)
         self.create_options()
+
+        # print(self.df_act)
+        # print('Наибольшая активность в ' + str(self.df_act.idxmax()[0]) + ' часов')
         if self.spinnerObject2.text == 'hour':
             self.textInfoLabel.text = f'Час наибольшей активности: {str(self.df_act.idxmax()[0])}  \n  Кол-во Calls: {str(self.Calls)}  \n  Кол-во Puts: {str(self.Puts)} \n MA50: {str(self.MA_50)} \n MA100: {str(self.MA_100)}'
         elif self.spinnerObject2.text == 'month':
