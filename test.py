@@ -16,7 +16,7 @@ import tinkoff.invest as tinvest
 from pandas import DataFrame
 from datetime import datetime, timedelta
 
-from ta.trend import ema_indicator
+from ta.trend import ema_indicator, SMAIndicator
 from kivy.uix.spinner import Spinner
 
 
@@ -181,8 +181,8 @@ class TestApp(App):
         self.Calls = calls.shape[0]
         self.Puts = puts.shape[0]
 
-        puts['sma50'] = ema_indicator(puts['Last Trade'], window=50)
-        puts['ema100'] = ema_indicator(puts['Last Trade'], window=100)
+        puts['sma50'] = SMAIndicator(puts['Last Trade'], window=50)
+        puts['ema100'] = SMAIndicator(puts['Last Trade'], window=100)
 
 
     def complete(self, instance):
