@@ -1,4 +1,5 @@
 import tinkoff.invest as tinvest
+import pandas as pd
 from pandas import DataFrame
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -120,6 +121,8 @@ if __name__ == "__main__":
 
     news = news.get_yf_rss(ticker)
     #print(news[0]['published']) #Пример, как узнать время новости
+    pd.set_option('display.max_columns', None)
     puts = options.get_puts(ticker)
     calls = options.get_calls(ticker)
+    print(puts, calls)
     exp_dates= options.get_expiration_dates(ticker)
